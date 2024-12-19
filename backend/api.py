@@ -1,77 +1,54 @@
-import logging
-import os
-from contextlib import asynccontextmanager
-from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import uvicorn  # Import uvicorn to run the server
-
-from langchain_openai import ChatOpenAI
+from contextlib import asynccontextmanager
 from langchain.schema import HumanMessage
+
+from agent_resources.agents.html_agent.html_agent import AgentOutput
+from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
-
 from agent_resources.agent_factory import AgentFactory
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Load environment variables
+import uvicorn
+from dotenv import load_dotenv
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY environment variable is not set.")
-
-
 class UserRequest(BaseModel):
     message: str
 
 
-class AgentResponse(BaseModel):
-    response: str
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Setup code runs before the app starts serving requests
-
-    llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY, model="gpt-3.5-turbo")
+    """
+    Lifespan function to set up resources before the app starts handling requests
+    and clean up after the app shuts down.
+    """
+    # Initialize resources
+    llm = ChatOpenAI(model="gpt-3.5-turbo")
     memory = MemorySaver()
     agent_factory = AgentFactory(llm=llm, memory=memory)
-    default_agent_type = "html_agent"
-    try:
-        app.state.agent = agent_factory.factory(default_agent_type)
-        logger.info(f"Instantiated agent: {default_agent_type}")
-    except Exception as e:
-        logger.error(
-            f"Failed to instantiate agent '{default_agent_type}': {e}", exc_info=True)
-        raise RuntimeError(
-            f"Could not instantiate agent '{default_agent_type}'.")
+    app.state.agent = agent_factory.factory("html_agent")
+
+    # Yield control to start the application
     yield
-    logger.info("Application shutdown. Resources cleaned up.")
 
+    # Cleanup resources (if necessary)
+    del app.state.agent
 
+# Create FastAPI app with lifespan
 app = FastAPI(lifespan=lifespan)
 
 
-@app.post("/chat", response_model=AgentResponse)
+@app.post("/chat", response_model=AgentOutput)
 async def chat_endpoint(user_request: UserRequest):
     """
-    Endpoint to interact with the agent.
-    Expects a JSON payload with a 'message' field.
-    Returns the agent's response.
+    Endpoint to handle chat requests. Accepts a JSON payload with the user's message
+    and returns a structured response from the agent.
     """
     try:
-        # Retrieve the agent from application state
+        # Retrieve the agent from app state
         agent = app.state.agent
-
-        # Run the agent with user's message
-        ai_message = agent.run(HumanMessage(content=user_request.message))
-
-        # Return the agent's response as JSON
-        return AgentResponse(response=ai_message.content)
+        # Run the agent with user's input message
+        result = agent.run(HumanMessage(content=user_request.message))
+        return result  # Pydantic model returns JSON with keys AIResponse and HTMLString
     except Exception as e:
-        logger.error("Error generating response", exc_info=True)
         raise HTTPException(
             status_code=500, detail="Error processing your request.")
 
