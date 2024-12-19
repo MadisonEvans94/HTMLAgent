@@ -18,12 +18,25 @@ export const ChatPane: React.FC = () => {
 	const messages: Message[] = [
 		{ role: 'assistant', content: 'Hello! How can I help you today?' },
 		{ role: 'user', content: 'What is the capital of France?' },
-		{ role: 'assistant', content: 'The capital of France is Paris.' },
+		{ role: 'assistant', content: 'Hello! How can I help you today?' },
+		{ role: 'user', content: 'What is the capital of France?' },
+		{ role: 'assistant', content: 'Hello! How can I help you today?' },
+		{ role: 'user', content: 'What is the capital of France?' },
+		{ role: 'assistant', content: 'Hello! How can I help you today?' },
+		{ role: 'user', content: 'What is the capital of France?' },
+		{ role: 'assistant', content: 'Hello! How can I help you today?' },
+		{ role: 'user', content: 'What is the capital of France?' },
+		{ role: 'assistant', content: 'Hello! How can I help you today?' },
+		{ role: 'user', content: 'What is the capital of France?' },
+		{ role: 'assistant', content: 'Hello! How can I help you today?' },
+		{ role: 'user', content: 'What is the capital of France?' },
+		{ role: 'assistant', content: 'Hello! How can I help you today?' },
+		{ role: 'user', content: 'What is the capital of France?' },
 	];
 
 
 	return (
-		<Pane className='w-1/4 h-full flex flex-col border-l border-gray-300 bg-white'>
+		<Pane className='w-1/4 h-full flex flex-col border-l'>
 			<Header />
 			<Separator />
 			<MessagesScrollArea messages={messages} />
@@ -36,7 +49,7 @@ export const ChatPane: React.FC = () => {
 /** Header: A simple top header bar for the chat pane. */
 const Header: React.FC = () => {
 	return (
-		<div className='p-3 flex items-center justify-between bg-gray-50 border-b border-gray-200'>
+		<div className='p-3 flex items-center justify-between border-b'>
 			<h2 className='text-sm font-semibold text-gray-800'>Assistant</h2>
 		</div>
 	);
@@ -85,7 +98,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) => {
 				className={`max-w-[80%] rounded-lg p-3 text-sm leading-relaxed
           ${
 				isUser
-					? 'bg-blue-500 text-white rounded-tr-none'
+					? 'bg-gray-600 text-white rounded-tr-none'
 					: 'bg-gray-100 text-gray-800 rounded-tl-none'
 			}`}
 			>
@@ -100,7 +113,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) => {
  */
 const FooterInput: React.FC = () => {
 	return (
-		<div className='p-3 bg-gray-50'>
+		<div className='p-3'>
 			<div className='flex items-start space-x-2'>
 				<div className='flex-1'>
 					<Textarea
