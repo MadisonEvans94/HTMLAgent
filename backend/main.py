@@ -1,65 +1,57 @@
-import logging
-import os
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from contextlib import asynccontextmanager
 from langchain.schema import HumanMessage
 
-from agent_resources.agent_factory import AgentFactory
-from utils import get_available_agents, prompt_user_for_agent
+from agent_resources.agents.html_agent.html_agent import AgentOutput
+from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
-
-# Configure logging
-logger = logging.getLogger(__name__)
-
-# Load environment variables
+from agent_resources.agent_factory import AgentFactory
+import uvicorn
+from dotenv import load_dotenv
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY environment variable is not set.")
+class UserRequest(BaseModel):
+    message: str
 
-def main():
 
-    # Initialize LLM
-    llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY, model="gpt-3.5-turbo")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan function to set up resources before the app starts handling requests
+    and clean up after the app shuts down.
+    """
+    # Initialize resources
+    llm = ChatOpenAI(model="gpt-3.5-turbo")
+    memory = MemorySaver()
+    agent_factory = AgentFactory(llm=llm, memory=memory)
+    app.state.agent = agent_factory.factory("html_agent")
 
-    # Initialize shared memory using LangGraph's MemorySaver for persistence
-    shared_memory = MemorySaver()
+    # Yield control to start the application
+    yield
 
-    # Initialize AgentFactory with shared dependencies
-    agent_factory = AgentFactory(llm=llm, memory=shared_memory)
+    # Cleanup resources (if necessary)
+    del app.state.agent
 
-    # Retrieve available agents
-    available_agents = get_available_agents(agent_factory)
-    if not available_agents:
-        logger.error("No agents available in the AgentFactory.")
-        print("No agents available to visualize.")
-        return
-    
-    # Prompt user to select an agent
-    selected_agent_type = prompt_user_for_agent(available_agents)
-    
-    try: 
-        agent = agent_factory.factory(selected_agent_type)
-        logger.info(f"Instantiated agent: {selected_agent_type}")
+# Create FastAPI app with lifespan
+app = FastAPI(lifespan=lifespan)
+
+
+@app.post("/chat", response_model=AgentOutput)
+async def chat_endpoint(user_request: UserRequest):
+    """
+    Endpoint to handle chat requests. Accepts a JSON payload with the user's message
+    and returns a structured response from the agent.
+    """
+    try:
+        # Retrieve the agent from app state
+        agent = app.state.agent
+        # Run the agent with user's input message
+        result = agent.run(HumanMessage(content=user_request.message))
+        return result  # Pydantic model returns JSON with keys AIResponse and HTMLString
     except Exception as e:
-        logger.error(
-            f"Failed to instantiate agent '{selected_agent_type}': {e}", exc_info=True)
-        print(
-            f"Error: Could not instantiate agent '{selected_agent_type}'. Check logs for details.")
-        return
-    
-    print(f"\n\n-----\n\nWelcome to the Chatbot! \nYou've selected the {selected_agent_type} agent. Type 'exit' to end the conversation.\n")
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() == 'exit':
-            print("Goodbye!")
-            break
-        try:
-            ai_message = agent.run(HumanMessage(content=user_input))
-            print(f"\n-----\n\nBot: {ai_message.content}\n")
-        except Exception as e:
-            logging.error("Error generating response", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail="Error processing your request.")
 
 
 if __name__ == "__main__":
-    main()
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
