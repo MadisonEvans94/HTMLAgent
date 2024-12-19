@@ -1,11 +1,15 @@
-
-import MainPage from './pages/MainPage';
+import { ChatPane } from "./components/ChatPane";
+import { GeneratedComponentPane } from "./components/GeneratedComponentPane";
+import { MainLayout } from "./components/MainLayout";
 
 function App() {
 
   return (
 		<>
-			<MainPage/>
+			<MainLayout>
+				<GeneratedComponentPane />
+				<ChatPane />
+			</MainLayout>
 		</>
   );
 }
