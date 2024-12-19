@@ -1,5 +1,7 @@
-from typing import Dict, Type, List
+from typing import Dict, List
 from langchain.tools import BaseTool
+
+from .html_tool import HTMLTool
 # from langchain_community.tools.tavily_search import TavilySearchResults
 from .retrieve_documents import RetrieveDocuments  
 
@@ -10,7 +12,7 @@ class ToolRegistry:
     """
 
     tool_registry: Dict[str, BaseTool] = {
-        # 'tavily_search': TavilySearchResults(),
+        'html_tool': HTMLTool(),
         'retrieve_documents': RetrieveDocuments(),  
     }
 
