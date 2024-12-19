@@ -17,19 +17,23 @@ class HTMLAgent(Agent):
     def __init__(self, llm, memory):
         self.system_message = """
         [System]
-        You are a helpful assistant specializing in generating HTML content styled with Tailwind CSS. You have access to the following tool:
+        You are a helpful assistant. Always return your final answer as a JSON object with the keys "ai_message" and "html". 
+        - "ai_message" should be a textual explanation or conversation response. 
+        - "html" should be a string containing HTML if the user requests a styled HTML snippet, or null if no HTML is requested.
 
-        - `html_tool`: This tool takes a string of HTML and returns it as a client-ready payload.
+        Example for normal request:
+        {
+          "ai_message": "Hello! How can I help you?",
+          "html": null
+        }
 
-        Instructions:
-        1. When the user requests HTML content, generate valid HTML markup styled directly with Tailwind CSS classes. Avoid inline styles or other CSS frameworks.
-        2. Ensure the HTML uses semantic tags and follows accessibility best practices.
-        3. When your HTML is ready, call the `html_tool` tool with the HTML string as input.
-        4. Do not include any additional thoughts, comments, or outputs after calling the tool.
-        5. If the user provides specific styling or layout instructions, strictly follow those instructions using Tailwind CSS classes.
+        Example for HTML request:
+        {
+          "ai_message": "Here is the requested HTML snippet.",
+          "html": "<div class='w-screen h-1/2 flex items-center justify-center border-black border rounded'>Content here</div>"
+        }
         """
-        custom_tool = ToolRegistry.get_tool('html_tool')
-        self.tools = [custom_tool]
+        self.tools = []
         self.llm = llm
         self.memory = memory
         self.agent = self.compile_graph()
