@@ -1,13 +1,56 @@
 import React, { useState } from 'react';
 import { Pane } from './Pane';
 import { Separator } from './ui/separator';
-import { ScrollArea } from './ui/scroll-area';
+
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
+import MessagesScrollArea from './MessagesScrollArea';
 
 interface ChatPaneProps {
 	onHTMLReceived: (html: string | null) => void;
 }
+
+const Header: React.FC = () => {
+	return (
+		<div className='p-3 flex items-center justify-between'>
+			<h2 className='text-sm font-semibold text-gray-800'>Assistant</h2>
+		</div>
+	);
+};
+
+
+
+interface FooterInputProps {
+	inputValue: string;
+	setInputValue: React.Dispatch<React.SetStateAction<string>>;
+	onSend: () => void;
+}
+
+const FooterInput: React.FC<FooterInputProps> = ({
+	inputValue,
+	setInputValue,
+	onSend,
+}) => {
+	return (
+		<div className='p-3'>
+			<div className='flex items-start space-x-2'>
+				<div className='flex-1'>
+					<Textarea
+						placeholder='Type your message here...'
+						className='h-32 bg-white'
+						value={inputValue}
+						onChange={(e) => setInputValue(e.target.value)}
+					/>
+				</div>
+				<Button className='bg-gray-700' onClick={onSend}>
+					Send
+				</Button>
+			</div>
+		</div>
+	);
+};
+
+
 
 export const ChatPane: React.FC<ChatPaneProps> = ({ onHTMLReceived }) => {
 	type Message = {
@@ -69,7 +112,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ onHTMLReceived }) => {
 	};
 
 	return (
-		<Pane className='w-1/4 h-full flex flex-col border-l'>
+		<Pane className='w-1/4 h-full flex flex-col border-l bg-gray-300'>
 			<Header />
 			<Separator />
 			<MessagesScrollArea messages={messages} />
@@ -83,87 +126,5 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ onHTMLReceived }) => {
 	);
 };
 
-const Header: React.FC = () => {
-	return (
-		<div className='p-3 flex items-center justify-between border-b'>
-			<h2 className='text-sm font-semibold text-gray-800'>Assistant</h2>
-		</div>
-	);
-};
 
-interface MessagesScrollAreaProps {
-	messages: { role: 'user' | 'assistant'; content: string }[];
-}
 
-const MessagesScrollArea: React.FC<MessagesScrollAreaProps> = ({
-	messages,
-}) => {
-	return (
-		<div className='flex-1 overflow-hidden'>
-			<ScrollArea className='h-full w-full p-4'>
-				<div className='flex flex-col space-y-4'>
-					{messages.map((msg, idx) => (
-						<MessageBubble
-							key={idx}
-							role={msg.role}
-							content={msg.content}
-						/>
-					))}
-				</div>
-			</ScrollArea>
-		</div>
-	);
-};
-
-interface MessageBubbleProps {
-	role: 'user' | 'assistant';
-	content: string;
-}
-
-const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) => {
-	const isUser = role === 'user';
-
-	return (
-		<div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-			<div
-				className={`max-w-[80%] rounded-lg p-3 text-sm leading-relaxed ${
-					isUser
-						? 'bg-gray-600 text-white rounded-tr-none'
-						: 'bg-gray-100 text-gray-800 rounded-tl-none'
-				}`}
-			>
-				{content}
-			</div>
-		</div>
-	);
-};
-
-interface FooterInputProps {
-	inputValue: string;
-	setInputValue: React.Dispatch<React.SetStateAction<string>>;
-	onSend: () => void;
-}
-
-const FooterInput: React.FC<FooterInputProps> = ({
-	inputValue,
-	setInputValue,
-	onSend,
-}) => {
-	return (
-		<div className='p-3'>
-			<div className='flex items-start space-x-2'>
-				<div className='flex-1'>
-					<Textarea
-						placeholder='Type your message here...'
-						className='resize-none'
-						value={inputValue}
-						onChange={(e) => setInputValue(e.target.value)}
-					/>
-				</div>
-				<Button variant='default' onClick={onSend}>
-					Send
-				</Button>
-			</div>
-		</div>
-	);
-};

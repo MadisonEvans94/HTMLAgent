@@ -28,6 +28,7 @@ class HTMLAgent(Agent):
         - "AIResponse": a textual explanation or conversation response.
         - "HTMLString": a string containing HTML if the user requests a styled HTML snippet, or null if no HTML is requested.
 
+        No matter what the user asks, do not return plain text outside of JSON. For normal conversation that doesn't request the creation of html or modification of html, return `"HTMLString": null`.
         Example for normal request:
         {
           "AIResponse": "Hello! How can I help you?",
@@ -73,10 +74,16 @@ class HTMLAgent(Agent):
                 # The AIMessage content should be a JSON string according to the system instructions
                 content = ai_message.content.strip()
                 # Parse JSON
-                data = json.loads(content)
-                # Validate with Pydantic
-                validated_data = AgentOutput(**data)
-                return validated_data
+                try:
+                    data = json.loads(content)
+                    validated_data = AgentOutput(**data)
+                    return validated_data
+
+
+                except json.JSONDecodeError:
+                    # Fallback: The model didn't return JSON, so treat it as a normal text response
+                    logger.error("Model did not return JSON. Falling back to text only.")
+                    return AgentOutput(AIResponse=content, HTMLString=None)
             else:
                 logger.error("Unexpected message type in response.")
                 return AgentOutput(AIResponse="Sorry, I encountered an unexpected response format.", HTMLString=None)

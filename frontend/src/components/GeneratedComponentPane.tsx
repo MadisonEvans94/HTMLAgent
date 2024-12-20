@@ -11,7 +11,7 @@ export const GeneratedComponentPane: React.FC<GeneratedComponentPaneProps> = ({
 	return (
 		<Pane className='grow flex items-center justify-center py-2'>
 			<div
-				className='border border-white rounded-lg w-full h-full'
+				className='border border-white rounded-lg w-full h-full flex items-center justify-center'
 				dangerouslySetInnerHTML={{
 					__html: htmlString ?? 'content here',
 				}}
