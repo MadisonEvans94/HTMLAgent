@@ -5,9 +5,11 @@ import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 
-// This is the main ChatPane component.
-// Now we manage messages in state and send input to the backend.
-export const ChatPane: React.FC = () => {
+interface ChatPaneProps {
+	onHTMLReceived: (html: string | null) => void;
+}
+
+export const ChatPane: React.FC<ChatPaneProps> = ({ onHTMLReceived }) => {
 	type Message = {
 		role: 'assistant' | 'user';
 		content: string;
@@ -19,9 +21,8 @@ export const ChatPane: React.FC = () => {
 	const handleSend = async () => {
 		if (!inputValue.trim()) return;
 
-		// Add user's message to the list
-		const userMessage: Message = { role: 'user', content: inputValue };
-		setMessages((prev) => [...prev, userMessage]);
+		// Add user's message
+		setMessages((prev) => [...prev, { role: 'user', content: inputValue }]);
 
 		try {
 			const response = await fetch('http://localhost:8000/chat', {
@@ -36,30 +37,29 @@ export const ChatPane: React.FC = () => {
 			}
 
 			const data = await response.json();
-			// data should look like: { AIResponse: string, HTMLString: string|null }
+			// data: { AIResponse: string, HTMLString: string|null }
 
-			// Add assistant message(s) based on the response
+			// Add assistant message(s)
 			if (data.HTMLString) {
-				// If HTMLString is not null, show the AIResponse as a preceding message (if needed),
-				// and then the HTML content
+				// Update parent's state with the HTML
+				onHTMLReceived(data.HTMLString);
+
+				// Show AIResponse as a normal assistant message
 				if (data.AIResponse) {
 					setMessages((prev) => [
 						...prev,
 						{ role: 'assistant', content: data.AIResponse },
-						{ role: 'assistant', content: data.HTMLString },
-					]);
-				} else {
-					setMessages((prev) => [
-						...prev,
-						{ role: 'assistant', content: data.HTMLString },
 					]);
 				}
 			} else {
-				// Just a normal response
+				// Normal text response
 				setMessages((prev) => [
 					...prev,
 					{ role: 'assistant', content: data.AIResponse },
 				]);
+
+				// No HTML to render, reset or set to null if needed
+				onHTMLReceived(null);
 			}
 		} catch (error) {
 			console.error('Error sending message:', error);
@@ -83,7 +83,6 @@ export const ChatPane: React.FC = () => {
 	);
 };
 
-/** Header: A simple top header bar for the chat pane. */
 const Header: React.FC = () => {
 	return (
 		<div className='p-3 flex items-center justify-between border-b'>
@@ -92,7 +91,6 @@ const Header: React.FC = () => {
 	);
 };
 
-/** MessagesScrollArea: A scrollable area containing the message list. */
 interface MessagesScrollAreaProps {
 	messages: { role: 'user' | 'assistant'; content: string }[];
 }
@@ -117,10 +115,6 @@ const MessagesScrollArea: React.FC<MessagesScrollAreaProps> = ({
 	);
 };
 
-/** MessageBubble: Displays a message bubble aligned depending on the role.
- *  - Assistant messages: left-aligned, lighter background.
- *  - User messages: right-aligned, highlighted background.
- */
 interface MessageBubbleProps {
 	role: 'user' | 'assistant';
 	content: string;
@@ -132,12 +126,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) => {
 	return (
 		<div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
 			<div
-				className={`max-w-[80%] rounded-lg p-3 text-sm leading-relaxed
-          ${
-				isUser
-					? 'bg-gray-600 text-white rounded-tr-none'
-					: 'bg-gray-100 text-gray-800 rounded-tl-none'
-			}`}
+				className={`max-w-[80%] rounded-lg p-3 text-sm leading-relaxed ${
+					isUser
+						? 'bg-gray-600 text-white rounded-tr-none'
+						: 'bg-gray-100 text-gray-800 rounded-tl-none'
+				}`}
 			>
 				{content}
 			</div>
@@ -151,8 +144,6 @@ interface FooterInputProps {
 	onSend: () => void;
 }
 
-/** FooterInput: Displays a textarea for input and a send button.
- */
 const FooterInput: React.FC<FooterInputProps> = ({
 	inputValue,
 	setInputValue,
