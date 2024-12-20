@@ -1,6 +1,4 @@
 import React, { ReactNode } from 'react';
-import { Button } from './ui/button'; // Assuming your shadcn button is imported here
-
 interface MainLayoutProps {
 	children: ReactNode;
 	htmlString: string | null;

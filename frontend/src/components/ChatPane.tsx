@@ -18,8 +18,6 @@ const Header: React.FC = () => {
 	);
 };
 
-
-
 interface FooterInputProps {
 	inputValue: string;
 	setInputValue: React.Dispatch<React.SetStateAction<string>>;
@@ -37,7 +35,7 @@ const FooterInput: React.FC<FooterInputProps> = ({
 				<div className='flex-1'>
 					<Textarea
 						placeholder='Type your message here...'
-						className='h-32 bg-white'
+						className='h-60 bg-white'
 						value={inputValue}
 						onChange={(e) => setInputValue(e.target.value)}
 					/>
