@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from langchain.schema import HumanMessage
@@ -9,7 +10,11 @@ from langgraph.checkpoint.memory import MemorySaver
 from agent_resources.agent_factory import AgentFactory
 import uvicorn
 from dotenv import load_dotenv
+
+# Load environment variables
 load_dotenv()
+
+
 class UserRequest(BaseModel):
     message: str
 
@@ -34,6 +39,15 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app with lifespan
 app = FastAPI(lifespan=lifespan)
+
+# Add CORS middleware to allow all origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 
 @app.post("/chat", response_model=AgentOutput)

@@ -1,39 +1,72 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pane } from './Pane';
-
 import { Separator } from './ui/separator';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 
 // This is the main ChatPane component.
-// It uses a vertical layout: a header, a scrollable message area, and a footer input area.
-// Messages are rendered using the MessageBubble subcomponent.
+// Now we manage messages in state and send input to the backend.
 export const ChatPane: React.FC = () => {
 	type Message = {
 		role: 'assistant' | 'user';
 		content: string;
 	};
 
-	const messages: Message[] = [
-		{ role: 'assistant', content: 'Hello! How can I help you today?' },
-		{ role: 'user', content: 'What is the capital of France?' },
-		{ role: 'assistant', content: 'Hello! How can I help you today?' },
-		{ role: 'user', content: 'What is the capital of France?' },
-		{ role: 'assistant', content: 'Hello! How can I help you today?' },
-		{ role: 'user', content: 'What is the capital of France?' },
-		{ role: 'assistant', content: 'Hello! How can I help you today?' },
-		{ role: 'user', content: 'What is the capital of France?' },
-		{ role: 'assistant', content: 'Hello! How can I help you today?' },
-		{ role: 'user', content: 'What is the capital of France?' },
-		{ role: 'assistant', content: 'Hello! How can I help you today?' },
-		{ role: 'user', content: 'What is the capital of France?' },
-		{ role: 'assistant', content: 'Hello! How can I help you today?' },
-		{ role: 'user', content: 'What is the capital of France?' },
-		{ role: 'assistant', content: 'Hello! How can I help you today?' },
-		{ role: 'user', content: 'What is the capital of France?' },
-	];
+	const [messages, setMessages] = useState<Message[]>([]);
+	const [inputValue, setInputValue] = useState('');
 
+	const handleSend = async () => {
+		if (!inputValue.trim()) return;
+
+		// Add user's message to the list
+		const userMessage: Message = { role: 'user', content: inputValue };
+		setMessages((prev) => [...prev, userMessage]);
+
+		try {
+			const response = await fetch('http://localhost:8000/chat', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ message: inputValue }),
+			});
+
+			if (!response.ok) {
+				console.error('Error from backend:', response.statusText);
+				return;
+			}
+
+			const data = await response.json();
+			// data should look like: { AIResponse: string, HTMLString: string|null }
+
+			// Add assistant message(s) based on the response
+			if (data.HTMLString) {
+				// If HTMLString is not null, show the AIResponse as a preceding message (if needed),
+				// and then the HTML content
+				if (data.AIResponse) {
+					setMessages((prev) => [
+						...prev,
+						{ role: 'assistant', content: data.AIResponse },
+						{ role: 'assistant', content: data.HTMLString },
+					]);
+				} else {
+					setMessages((prev) => [
+						...prev,
+						{ role: 'assistant', content: data.HTMLString },
+					]);
+				}
+			} else {
+				// Just a normal response
+				setMessages((prev) => [
+					...prev,
+					{ role: 'assistant', content: data.AIResponse },
+				]);
+			}
+		} catch (error) {
+			console.error('Error sending message:', error);
+		} finally {
+			setInputValue('');
+		}
+	};
 
 	return (
 		<Pane className='w-1/4 h-full flex flex-col border-l'>
@@ -41,7 +74,11 @@ export const ChatPane: React.FC = () => {
 			<Separator />
 			<MessagesScrollArea messages={messages} />
 			<Separator />
-			<FooterInput />
+			<FooterInput
+				inputValue={inputValue}
+				setInputValue={setInputValue}
+				onSend={handleSend}
+			/>
 		</Pane>
 	);
 };
@@ -108,10 +145,19 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ role, content }) => {
 	);
 };
 
+interface FooterInputProps {
+	inputValue: string;
+	setInputValue: React.Dispatch<React.SetStateAction<string>>;
+	onSend: () => void;
+}
+
 /** FooterInput: Displays a textarea for input and a send button.
- *  For a GPT-like chat, typically just a large textarea and a send button.
  */
-const FooterInput: React.FC = () => {
+const FooterInput: React.FC<FooterInputProps> = ({
+	inputValue,
+	setInputValue,
+	onSend,
+}) => {
 	return (
 		<div className='p-3'>
 			<div className='flex items-start space-x-2'>
@@ -119,9 +165,13 @@ const FooterInput: React.FC = () => {
 					<Textarea
 						placeholder='Type your message here...'
 						className='resize-none'
+						value={inputValue}
+						onChange={(e) => setInputValue(e.target.value)}
 					/>
 				</div>
-				<Button variant='default'>Send</Button>
+				<Button variant='default' onClick={onSend}>
+					Send
+				</Button>
 			</div>
 		</div>
 	);

@@ -1,0 +1,17 @@
+### Test 1: Basic Hello Request
+POST http://localhost:8000/chat
+Content-Type: application/json
+
+{
+  "message": "hello"
+}
+
+###
+
+### Test 2: Request an HTML Element
+POST http://localhost:8000/chat
+Content-Type: application/json
+
+{
+  "message": "Create a centered div with a black rounded border that takes up half the height and full width of the screen."
+}
