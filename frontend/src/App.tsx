@@ -7,7 +7,7 @@ function App() {
 	const [htmlString, setHtmlString] = useState<string | null>(null);
 
 	return (
-		<MainLayout>
+		<MainLayout htmlString={htmlString}>
 			<GeneratedComponentPane htmlString={htmlString} />
 			<ChatPane onHTMLReceived={setHtmlString} />
 		</MainLayout>
